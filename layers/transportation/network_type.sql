@@ -10,24 +10,25 @@ DROP TRIGGER IF EXISTS trigger_refresh_name ON transportation_name.updates_name;
 DO
 $$
     BEGIN
-        IF NOT EXISTS(SELECT 1 FROM pg_type WHERE typname = 'route_network_type') THEN
+        PERFORM 'route_network_type'::regtype;
+    EXCEPTION
+        WHEN undefined_object THEN
             CREATE TYPE route_network_type AS enum (
                 'us-interstate', 'us-highway', 'us-state',
-                'ca-transcanada',
-                'gb-motorway', 'gb-trunk'
+                'ca-transcanada', 'ca-provincial-arterial', 'ca-provincial',
+                'gb-motorway', 'gb-trunk', 'gb-primary',
+                'ie-motorway', 'ie-national', 'ie-regional'
                 );
-        END IF;
     END
 $$;
 
-DO
+-- Top-level national route networks that should display at the lowest zooms
+CREATE OR REPLACE FUNCTION osm_national_network(network text) RETURNS boolean AS
 $$
-    BEGIN
-        BEGIN
-            ALTER TABLE osm_route_member
-                ADD COLUMN network_type route_network_type;
-        EXCEPTION
-            WHEN duplicate_column THEN RAISE NOTICE 'column network_type already exists in network_type.';
-        END;
-    END;
-$$;
+    SELECT network <> '' AND network IN (
+        -- Canada
+        'ca-transcanada', 'ca-provincial-arterial',
+        -- United States
+        'us-interstate');
+$$ LANGUAGE sql IMMUTABLE
+                PARALLEL SAFE;

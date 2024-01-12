@@ -33,6 +33,8 @@ CREATE OR REPLACE FUNCTION poi_class(subclass text, mapping_key text)
     RETURNS text AS
 $$
 SELECT CASE
+           -- Special case subclass collision between office=university and amenity=university
+           WHEN mapping_key = 'amenity' AND subclass = 'university' THEN 'college'
            %%FIELD_MAPPING: class %%
            WHEN mapping_key IN ('barrier', 'craft', 'shop') THEN mapping_key
            ELSE subclass

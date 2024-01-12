@@ -15,6 +15,7 @@ To generate them, you need to:
 
 
 ## OpenMapTiles [![Build Status](https://github.com/openmaptiles/openmaptiles/workflows/OMT_CI/badge.svg?branch=master)](https://github.com/openmaptiles/openmaptiles/actions)
+## OpenMapTiles [![Build Status](https://github.com/openmaptiles/openmaptiles/workflows/OpenMapTiles%20Integrity%20CI/badge.svg?branch=master)](https://github.com/openmaptiles/openmaptiles/actions)
 
 OpenMapTiles is an extensible and open tile schema based on the OpenStreetMap. This project is used to generate vector tiles for online zoomable maps. OpenMapTiles is about creating a beautiful basemaps with general layers containing topographic information. More information [openmaptiles.org](https://openmaptiles.org/) and [maptiler.com/data/](https://www.maptiler.com/data/).
 
@@ -27,7 +28,8 @@ Please keep in mind that OpenMapTiles schema should display general topographic 
 - :link: Data for download: https://www.maptiler.com/data/
 - :link: Hosting https://www.maptiler.com/cloud/
 - :link: Create own layer https://github.com/openmaptiles/openmaptiles-skiing
-- :link: Discuss at the #openmaptiles channel at [OSM Slack](https://osmus-slack.herokuapp.com/)
+- :link: Practical usage of OpenMapTiles https://github.com/maptiler/foss4g-workshop
+- :link: Discuss at the #openmaptiles channel at [OSM Slack](https://slack.openstreetmap.us/)
 
 ## Styles
 
@@ -36,14 +38,15 @@ You can start from several GL styles supporting the OpenMapTiles vector schema.
 :link: [Learn how to create Mapbox GL styles with Maputnik and OpenMapTiles](http://openmaptiles.org/docs/style/maputnik/).
 
 
+- [OSM OpenMapTiles](./style/README.md)
 - [OSM Bright](https://github.com/openmaptiles/osm-bright-gl-style)
+- [MapTiler Basic](https://github.com/openmaptiles/maptiler-basic-gl-style)
+- [MapTiler 3D](https://github.com/openmaptiles/maptiler-3d-gl-style)
+- [Fiord Color](https://github.com/openmaptiles/fiord-color-gl-style)
+- [MapTiler Toner](https://github.com/openmaptiles/maptiler-toner-gl-style)
+- [OSM Liberty](https://github.com/maputnik/osm-liberty)
 - [Positron](https://github.com/openmaptiles/positron-gl-style)
 - [Dark Matter](https://github.com/openmaptiles/dark-matter-gl-style)
-- [Klokantech Basic](https://github.com/openmaptiles/klokantech-basic-gl-style)
-- [Klokantech 3D](https://github.com/openmaptiles/klokantech-3d-gl-style)
-- [Fiord Color](https://github.com/openmaptiles/fiord-color-gl-style)
-- [Toner](https://github.com/openmaptiles/toner-gl-style)
-- [OSM Liberty](https://github.com/maputnik/osm-liberty)
 
 We also ported over our favorite old raster styles (TM2).
 
@@ -103,7 +106,7 @@ make
 ```
 
 You can execute the following manual steps (for better understanding)
-or use the provided `quickstart.sh` script to automatically download and import given area. If area is not given, albania will be imported.
+or use the provided `quickstart.sh` script to automatically download and import given area. If area is not given, Albania will be imported. List of available areas `make list-geofabrik`.
 
 ```
 ./quickstart.sh <area>
@@ -117,7 +120,7 @@ Now start up the database container.
 make start-db
 ```
 
-Import external data from [OpenStreetMapData](http://osmdata.openstreetmap.de/), [Natural Earth](http://www.naturalearthdata.com/) and [OpenStreetMap Lake Labels](https://github.com/lukasmartinelli/osm-lakelines). Natural Earth country boundaries are used in the few lowest zoom levels.
+Import external data from [OpenStreetMapData](http://osmdata.openstreetmap.de/), [Natural Earth](http://www.naturalearthdata.com/) and [OpenStreetMap Lake Labels](https://github.com/openmaptiles/osm-lakelines). Natural Earth country boundaries are used in the few lowest zoom levels.
 
 ```bash
 make import-data
@@ -129,8 +132,8 @@ Download OpenStreetMap data extracts from any source like [Geofabrik](http://dow
 make download area=albania
 ```
 
-[Import OpenStreetMap data](https://github.com/openmaptiles/openmaptiles-tools/tree/master/docker/import-osm) with the mapping rules from
-`build/mapping.yaml` (which has been created by `make`). Run after any change in layers definition.
+[Import OpenStreetMap data](https://github.com/openmaptiles/openmaptiles-tools/blob/master/bin/import-osm) with the mapping rules from
+`build/mapping.yaml` (which has been created by `make`). Run after any change in layers definition (any change in `mapping.yaml`).
 
 ```bash
 make import-osm
@@ -161,6 +164,16 @@ make
 make import-sql
 ```
 
+Each time you make a modification that adds a new feature to vector tiles e.g. adding new OSM tags, modify the layer 
+style snippet by adding new style layer so the changes are propagated visually into the style.
+All new style layers must have the `order` value which determines the order or rendering in the map style. 
+After the layer style snippet is modified run:
+```bash
+make build-style
+```
+
+
+
 Now you are ready to **generate the vector tiles**. By default, `./.env` specifies the entire planet BBOX for zooms 0-7, but running `generate-bbox-file` will analyze the data file and set the `BBOX` param to limit tile generation.
 
 ```
@@ -178,7 +191,7 @@ make import-data            # Import external data from OpenStreetMapData, Natur
 make download area=albania  # download albania .osm.pbf file -- can be skipped if a .osm.pbf file already existing
 make import-osm             # import data into postgres
 make import-wikidata        # import Wikidata
-make import-sql             # create / import sql funtions 
+make import-sql             # create / import sql functions 
 make generate-bbox-file     # compute data bbox -- not needed for the whole planet
 make generate-tiles-pg      # generate tiles
 ```
@@ -187,7 +200,7 @@ Instead of calling `make download area=albania` you can add a .osm.pbf file in t
 
 ## License
 
-All code in this repository is under the [BSD license](./LICENSE.md) and the cartography decisions encoded in the schema and SQL are licensed under [CC-BY](./LICENSE.md).
+All code in this repository is under the [BSD license](./LICENSE.md). Design and the cartography decisions encoded in the schema and SQL are licensed under [CC-BY](./LICENSE.md).
 
 Products or services using maps derived from OpenMapTiles schema need to visibly credit "OpenMapTiles.org" or reference "OpenMapTiles" with a link to https://openmaptiles.org/. Exceptions to attribution requirement can be granted on request.
 

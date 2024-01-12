@@ -8,17 +8,11 @@ CREATE INDEX IF NOT EXISTS osm_aerodrome_label_point_type_partial_idx
     WHERE aerodrome_type = 'international'
       AND iata <> '';
 
-UPDATE osm_aerodrome_label_point SET aerodrome_type=(
-   CASE
-        %%FIELD_MAPPING: class %%
-        ELSE 'other' END
-);
-
 CREATE SCHEMA IF NOT EXISTS aerodrome_label;
 
 CREATE TABLE IF NOT EXISTS aerodrome_label.osm_ids
 (
-    osm_id bigint
+    osm_id bigint PRIMARY KEY
 );
 
 -- etldoc: osm_aerodrome_label_point -> osm_aerodrome_label_point
@@ -34,6 +28,17 @@ $$
     WHERE (full_update OR osm_id IN (SELECT osm_id FROM aerodrome_label.osm_ids))
         AND COALESCE(tags->'name:latin', tags->'name:nonlatin', tags->'name_int') IS NULL
         AND tags != update_tags(tags, geometry);
+
+    UPDATE osm_aerodrome_label_point
+    SET aerodrome_type=
+       CASE
+	    %%FIELD_MAPPING: class %%
+	    ELSE 'other' END
+    WHERE (full_update OR osm_id IN (SELECT osm_id FROM aerodrome_label.osm_ids))
+    AND aerodrome_type !=
+       CASE
+	    %%FIELD_MAPPING: class %%
+	    ELSE 'other' END;
 $$ LANGUAGE SQL;
 
 SELECT update_aerodrome_label_point(true);
@@ -43,11 +48,7 @@ SELECT update_aerodrome_label_point(true);
 CREATE OR REPLACE FUNCTION aerodrome_label.store() RETURNS trigger AS
 $$
 BEGIN
-    IF (tg_op = 'DELETE') THEN
-        INSERT INTO aerodrome_label.osm_ids VALUES (OLD.osm_id);
-    ELSE
-        INSERT INTO aerodrome_label.osm_ids VALUES (NEW.osm_id);
-    END IF;
+    INSERT INTO aerodrome_label.osm_ids VALUES (NEW.osm_id) ON CONFLICT (osm_id) DO NOTHING;
     RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;
@@ -72,6 +73,11 @@ DECLARE
     t TIMESTAMP WITH TIME ZONE := clock_timestamp();
 BEGIN
     RAISE LOG 'Refresh aerodrome_label';
+
+    -- Analyze tracking and source tables before performing update
+    ANALYZE aerodrome_label.osm_ids;
+    ANALYZE osm_aerodrome_label_point;
+
     PERFORM update_aerodrome_label_point(false);
     -- noinspection SqlWithoutWhere
     DELETE FROM aerodrome_label.osm_ids;
@@ -84,13 +90,13 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER trigger_store
-    AFTER INSERT OR UPDATE OR DELETE
+    AFTER INSERT OR UPDATE
     ON osm_aerodrome_label_point
     FOR EACH ROW
 EXECUTE PROCEDURE aerodrome_label.store();
 
 CREATE TRIGGER trigger_flag
-    AFTER INSERT OR UPDATE OR DELETE
+    AFTER INSERT OR UPDATE
     ON osm_aerodrome_label_point
     FOR EACH STATEMENT
 EXECUTE PROCEDURE aerodrome_label.flag();
